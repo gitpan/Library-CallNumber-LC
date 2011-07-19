@@ -8,23 +8,46 @@ my $a = Library::CallNumber::LC->new('A');
 is($a->normalize, 'A', "Basic normalization");
 is($a->normalize, $a->start_of_range, "Equvalent functions");
 is($a->end_of_range, 'A~', "End of range");
-is($a->end_of_range_FullLength, 'A  999999~999~999~999', "End of range fulllength");
+$a->call_number('B11 A543');
+is($a->normalize, 'B0011 A543', "Change call number");
+is($a->call_number, 'B11 A543', "Retrieve call number text");
+is($a->topper, ' ', "Retrieve 'topper'");
+is($a->bottomer, '~', "Retrieve 'bottomer'");
 
 my $LC = Library::CallNumber::LC->new();
-is($LC->normalize('A11.1'), 'A  00111', "Basic normalization");
-is($LC->end_of_range_FullLength('A11.1'), 'A  001119~999~999~999', "End of range fulllength");
-is($LC->end_of_range('A11.1'), 'A  00111~', "End of range");
+is($LC->normalize('A11.1'), 'A00111', "Basic normalization");
+is($LC->end_of_range('A11.1'), 'A00111~', "End of range");
 
-is($a->normalize('B11'), 'B  0011', "Passed in arg");
+is($a->normalize('B11'), 'B0011', "Passed in arg");
 
-is($a->normalize('A 123.4 .c11'), 'A  012340C11', "Cutter");
-is($a->normalize('B11 .c13 .d11'), 'B  001100C130D11', "Two cutters start");
-is($a->end_of_range('B11 .c13 .d11'), 'B  001100C130D11~', "Two cutters end");
-is($a->end_of_range_FullLength('B11 .c13 .d11'), 'B  001100C130D119~999', "Two cutters end fulllength");
+is($a->normalize('A 123.4 .c11'), 'A01234 C11', "Cutter");
+is($a->normalize('B11 A543 B6'), 'B0011 A543 B6', "Two cutters");
+is($a->start_of_range('B11 .c13 .d11'), 'B0011 C13 D11', "Two cutters start");
+is($a->end_of_range('B11 .c13 .d11'), 'B0011 C13 D11~', "Two cutters end");
 
-is($a->normalizeFullLength('B11'), 'B  001100 000 000 000', "Full Length");
-is($a->normalizeFullLength('B'),   'B  000000 000 000 000', "Full Length");
+# try some alternate sort chars
 
+# instance level
+$a->topper('!');
+$a->bottomer('_');
+is($a->normalize('A0610.5 C75 M5'), 'A06105!C75!M5', "Instance level 'topper' setting");
+is($a->end_of_range('A610.5'), 'A06105_', "Instance level 'bottomer' setting");
+# instance level at construction
+my $b = Library::CallNumber::LC->new('A123 C44', '$', ']');
+is($b->end_of_range, 'A0123$C44]', "Instance level 'topper'/'bottomer'");
+# class level
+Library::CallNumber::LC->topper('#');
+Library::CallNumber::LC->bottomer('^');
+is(Library::CallNumber::LC->normalize('A0610.5 C75 M5'), 'A06105#C75#M5', "Class level 'topper' setting");
+is(Library::CallNumber::LC->end_of_range('A610.5'), 'A06105^', "Class level 'bottomer' setting");
+
+# reset back to defaults
+Library::CallNumber::LC->topper(' ');
+Library::CallNumber::LC->bottomer('~');
+$a->topper(' ');
+$a->bottomer('~');
+is($a->normalize('A0610.5 C75 M5'), 'A06105 C75 M5', "Instance level 'topper' setting");
+is(Library::CallNumber::LC->normalize('A0610.5 C75 M5'), 'A06105 C75 M5', "Class level 'topper' setting");
 
 my @test = (
  "a 0",
@@ -32,6 +55,7 @@ my @test = (
  "a 8 f166",
  "a19 f96",
  "a19f99g15",
+ "a19 .f99 g15 1997",
  "a242 83 i65",
  "a610 h18",
  "a610.5 c75 m5 1910",
@@ -58,6 +82,7 @@ my @test = (
  "abc 0",
  "ac 1 a52",
  "ac 1 a671 2000",
+ "ac 1 a6713 2000",
  "ac 1 a926 r 0",
  "ac 1 b26",
  "ac 1 c2",
@@ -65,6 +90,12 @@ my @test = (
  "ac 1 e45",
  "ac 1 f142",
  "ac 1 g78",
+ "hd205 1974.m3",
+ "hd205 1974.m83",
+ "hd205 1974 .s74",
+ "tk5105.87 .g57 1993",
+ "tk5105.875 .i57 c92 2005",
+ "tk5105.888 .s43 1997",
  "zzz19f99g15",
  "zzz 1945 f99g15 d11 1990",
  
@@ -79,15 +110,12 @@ foreach my $t (@test) {
 for ($j = 0; $j < scalar(@test) -1; $j++) {
   my $n1 = $a->normalize($test[$j]);
   my $n2 = $a->normalize($test[$j+1]);
-  my $l1 = $a->normalizeFullLength($test[$j]);
-  my $l2 = $a->normalizeFullLength($test[$j+1]);
   my $i1 = new Math::BigInt $a->toLongInt($test[$j]);
   my $i2 = new Math::BigInt $a->toLongInt($test[$j+1]);
   
   next unless ($n1 and $n2); # skip the invalids
    
-#  ok($testints[$j] < $testints[$j+1], $a->normalizeFullLength($test[$j]) . " < " . $a->normalizeFullLength($test[$j+1]));
-  ok($n1 le $n2, $test[$j] . ' < ' . $test[$j+1] . ' (normalize)');
-  ok($l1 le $l2, $test[$j] . ' < ' . $test[$j+1] . ' (normalizeFullLength)');
-  ok($i1->bcmp($i2) < 0, $test[$j] . ' < ' . $test[$j+1] . " (toLongInt $i1 vs $i2)");
+  ok($n1 lt $n2, $test[$j] . ' < ' . $test[$j+1] . ' (normalize)');
+  # must allow "or equal" due to lack of precision
+  ok($i1->bcmp($i2) <= 0, $test[$j] . ' < ' . $test[$j+1] . " (toLongInt $i1 vs $i2)");
 }
