@@ -1,5 +1,8 @@
 Revision history for Library-CallNumber-LC
 
+0.22    2012/05/01
+        -Clarify licensing (both same-as-Perl and BSD)
+
 0.21    2012/05/01
         -Correct deprecated use of qw(...) as parentheses
 

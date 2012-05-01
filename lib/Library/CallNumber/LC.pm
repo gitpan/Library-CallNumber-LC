@@ -10,11 +10,11 @@ Library::CallNumber::LC - Deal with Library-of-Congress call numbers
 
 =head1 VERSION
 
-Version 0.21;
+Version 0.22;
 
 =cut
 
-our $VERSION = '0.21';
+our $VERSION = '0.22';
 
 
 =head1 SYNOPSIS
@@ -436,8 +436,8 @@ Copyright 2009 Bill Dueber, all rights reserved.
 Copyright 2011 Dan Wells, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
-under the same terms as the new BSD licsense as described at 
-http://www.opensource.org/licenses/bsd-license.php
+under the same terms as Perl itself and also under the new BSD license
+as described at http://www.opensource.org/licenses/bsd-license.php
 
 
 =cut
